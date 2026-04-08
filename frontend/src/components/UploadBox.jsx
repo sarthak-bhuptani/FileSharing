@@ -5,6 +5,8 @@ const UploadBox = ({ onUploadSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [uploadCount, setUploadCount] = useState(0);
+
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -31,10 +33,12 @@ const UploadBox = ({ onUploadSuccess }) => {
 
   const handleFiles = async (files) => {
     const formData = new FormData();
-    Array.from(files).forEach((file) => {
+    const fileArray = Array.from(files);
+    fileArray.forEach((file) => {
       formData.append('files', file);
     });
 
+    setUploadCount(fileArray.length);
     setIsUploading(true);
     try {
       const { default: api } = await import('../services/api');
@@ -46,6 +50,7 @@ const UploadBox = ({ onUploadSuccess }) => {
       console.error('Upload failed', error);
     } finally {
       setIsUploading(false);
+      setUploadCount(0);
     }
   };
 
@@ -70,7 +75,7 @@ const UploadBox = ({ onUploadSuccess }) => {
         )}
         <div className="space-y-1">
           <p className="text-lg font-semibold text-gray-700">
-            {isUploading ? 'Uploading files...' : 'Click or drag files to upload'}
+            {isUploading ? `Uploading ${uploadCount} files...` : 'Click or drag files to upload'}
           </p>
           <p className="text-sm text-gray-500">
             Any file type up to 50MB

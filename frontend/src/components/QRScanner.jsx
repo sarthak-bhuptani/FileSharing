@@ -4,7 +4,7 @@ import { QrCode, Upload, Link as LinkIcon, Download, Loader2 } from 'lucide-reac
 import toast from 'react-hot-toast';
 
 const QRScanner = () => {
-  const [scannedUrl, setScannedUrl] = useState(null);
+  const [scannedUrls, setScannedUrls] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -27,7 +27,16 @@ const QRScanner = () => {
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
         if (code) {
-          setScannedUrl(code.data);
+          try {
+            const data = JSON.parse(code.data);
+            if (Array.isArray(data)) {
+              setScannedUrls(data);
+            } else {
+              setScannedUrls([code.data]);
+            }
+          } catch (e) {
+            setScannedUrls([code.data]);
+          }
           toast.success('QR Code decoded successfully!');
         } else {
           toast.error('No QR code found in the image.');
@@ -57,7 +66,7 @@ const QRScanner = () => {
         
         <div className="text-center">
           <h2 className="text-xl font-bold text-gray-900">Decode QR Code</h2>
-          <p className="mt-1 text-sm text-gray-500">Upload a QR image to reveal the hidden URL</p>
+          <p className="mt-1 text-sm text-gray-500">Upload a QR image to reveal the hidden files</p>
         </div>
 
         <button
@@ -80,29 +89,39 @@ const QRScanner = () => {
           onChange={handleImageUpload}
         />
 
-        {scannedUrl && (
+        {scannedUrls && scannedUrls.length > 0 && (
           <div className="w-full space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4 animate-in fade-in slide-in-from-bottom-2">
-            <h3 className="text-sm font-medium text-gray-900">Extracted URL</h3>
-            <div className="flex items-center space-x-2 rounded-lg bg-white p-3 shadow-sm ring-1 ring-gray-200">
-              <LinkIcon className="h-5 w-5 text-gray-400 shrink-0" />
-              <p className="truncate text-sm text-gray-600">{scannedUrl}</p>
-            </div>
-            <div className="flex gap-3">
-              <a 
-                href={scannedUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex flex-1 items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
-                title="Open Link"
-              >
-                Open link
-              </a>
-              <button 
-                onClick={() => downloadFile(scannedUrl)}
-                className="flex flex-1 items-center justify-center rounded-md bg-indigo-50 text-indigo-700 px-3 py-2 text-sm font-semibold shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 transition-colors"
-              >
-                <Download className="mr-1 h-4 w-4" /> Download
-              </button>
+            <h3 className="text-sm font-medium text-gray-900">
+              {scannedUrls.length === 1 ? 'Extracted URL' : `${scannedUrls.length} Files Found`}
+            </h3>
+            <div className="space-y-3">
+              {scannedUrls.map((url, index) => {
+                const fileName = url.substring(url.lastIndexOf('/') + 1) || `File ${index + 1}`;
+                return (
+                  <div key={index} className="flex flex-col space-y-2 rounded-lg bg-white p-3 shadow-sm ring-1 ring-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <LinkIcon className="h-4 w-4 text-gray-400 shrink-0" />
+                      <p className="truncate text-sm font-medium text-gray-700">{fileName}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <a 
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex flex-1 items-center justify-center rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
+                      >
+                        Open
+                      </a>
+                      <button 
+                        onClick={() => downloadFile(url)}
+                        className="flex flex-1 items-center justify-center rounded-md bg-indigo-50 text-indigo-700 px-3 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 transition-colors"
+                      >
+                        <Download className="mr-1 h-3 w-3" /> Download
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
