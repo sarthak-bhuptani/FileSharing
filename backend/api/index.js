@@ -10,7 +10,13 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// Robust CORS for Mobile/Cross-Origin support on Vercel
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json());
 
 // Log all requests
@@ -81,11 +87,8 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
 
 module.exports = app;
 
-// Only listen if run directly (local development)
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Backend running locally on http://localhost:${PORT}`);
-    const isProduction = !!process.env.BLOB_READ_WRITE_TOKEN;
-    console.log(`Cloud Upload: ${isProduction ? 'ENABLED' : 'DISABLED (Using Local Fallback)'}`);
   });
 }
