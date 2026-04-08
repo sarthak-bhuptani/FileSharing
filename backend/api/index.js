@@ -13,13 +13,6 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// For local testing only
-const localUploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(localUploadsDir)) {
-  fs.mkdirSync(localUploadsDir, { recursive: true });
-}
-app.use('/uploads', express.static(localUploadsDir));
-
 // Log all requests
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -52,6 +45,11 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
         });
         return { url: blob.url, name: file.originalname, size: file.size, mimetype: file.mimetype };
       } else {
+        // LOCAL FALLBACK: Save to disk
+        const localUploadsDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(localUploadsDir)) {
+          fs.mkdirSync(localUploadsDir, { recursive: true });
+        }
         const filePath = path.join(localUploadsDir, uniqueFilename);
         fs.writeFileSync(filePath, file.buffer);
         return { 
