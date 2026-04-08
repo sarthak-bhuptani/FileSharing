@@ -38,7 +38,7 @@ const UploadBox = ({ onUploadSuccess }) => {
     setIsUploading(true);
     try {
       const { default: api } = await import('../services/api');
-      const response = await api.post('/upload', formData, {
+      const response = await api.post('/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       onUploadSuccess(response.data);
