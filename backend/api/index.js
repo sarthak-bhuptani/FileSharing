@@ -13,10 +13,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Create local uploads directory if it doesn't exist
-const localUploadsDir = path.join(__dirname, 'uploads');
+// For local testing only
+const localUploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(localUploadsDir)) {
-  fs.mkdirSync(localUploadsDir);
+  fs.mkdirSync(localUploadsDir, { recursive: true });
 }
 app.use('/uploads', express.static(localUploadsDir));
 
@@ -27,9 +27,8 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => res.send('DropLink Backend is Running! Visit /api/health for status.'));
-app.get('/api/health', (req, res) => res.json({ status: 'ok', tokenPresent: !!process.env.BLOB_READ_WRITE_TOKEN }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development' }));
 
-// Use Memory Storage for Vercel, but we can also use Disk for local fallback
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -47,14 +46,12 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
       const uniqueFilename = `${uniqueSuffix}-${file.originalname}`;
       
       if (isProduction) {
-        // PRODUCTION: Upload to Vercel Blob
         const blob = await put(uniqueFilename, file.buffer, {
           access: 'public',
           token: process.env.BLOB_READ_WRITE_TOKEN
         });
         return { url: blob.url, name: file.originalname, size: file.size, mimetype: file.mimetype };
       } else {
-        // LOCAL FALLBACK: Save to disk
         const filePath = path.join(localUploadsDir, uniqueFilename);
         fs.writeFileSync(filePath, file.buffer);
         return { 
@@ -86,7 +83,11 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
 
 module.exports = app;
 
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-  console.log(`Cloud Upload: ${!!process.env.BLOB_READ_WRITE_TOKEN ? 'ENABLED' : 'DISABLED (Using Local Fallback)'}`);
-});
+// Only listen if run directly (local development)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Backend running locally on http://localhost:${PORT}`);
+    const isProduction = !!process.env.BLOB_READ_WRITE_TOKEN;
+    console.log(`Cloud Upload: ${isProduction ? 'ENABLED' : 'DISABLED (Using Local Fallback)'}`);
+  });
+}
