@@ -37,6 +37,8 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
+    console.log(`Received ${req.files.length} files for upload`);
+
     const isProduction = !!process.env.BLOB_READ_WRITE_TOKEN;
     const host = req.protocol + '://' + req.get('host');
 
